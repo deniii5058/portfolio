@@ -1,0 +1,1824 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Orbit — Product Design Portfolio</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+
+  /* ---------- tokens ---------- */
+  :root{
+    --void: #08080f;
+    --void-2: #0f0f22;
+    --panel: #12122a;
+    --line: rgba(255,255,255,0.09);
+    --line-strong: rgba(154,132,255,0.35);
+    --glass: rgba(255,255,255,0.055);
+    --ink: #f4f2fb;
+    --ink-dim: #9c96bd;
+    --ink-faint: #6a6489;
+
+    --violet: #7b5cff;
+    --violet-soft: #a48cff;
+    --magenta: #e14dab;
+    --orange: #ff8a5c;
+    --blue: #4ea1ff;
+
+    --note-blue: #cfe0ff;
+    --note-blue-ink: #2c3a63;
+    --note-pink: #ffcfe4;
+    --note-pink-ink: #63263f;
+
+    --font-display: 'Space Grotesk', sans-serif;
+    --font-body: 'Inter', sans-serif;
+    --font-mono: 'JetBrains Mono', monospace;
+
+    --ease: cubic-bezier(.22,.9,.32,1);
+  }
+
+  *,*::before,*::after{ box-sizing:border-box; }
+  html,body{
+    height:100%;
+    margin:0;
+    background:var(--void);
+    color:var(--ink);
+    font-family:var(--font-body);
+    overflow:hidden;
+    -webkit-font-smoothing:antialiased;
+  }
+  h1,h2,h3{ font-family:var(--font-display); margin:0; letter-spacing:-0.01em; }
+  p{ margin:0; }
+  ul{ margin:0; padding:0; list-style:none; }
+  button{ font-family:inherit; }
+  a{ color:inherit; text-decoration:none; }
+
+  :focus-visible{
+    outline:2px solid var(--blue);
+    outline-offset:4px;
+    border-radius:6px;
+  }
+
+  /* ---------- atmosphere ---------- */
+  #stars{ position:fixed; inset:0; z-index:0; }
+
+  .nebula{
+    position:fixed; inset:0; z-index:0; pointer-events:none;
+    background:
+      radial-gradient(ellipse 700px 500px at 18% 20%, rgba(123,92,255,0.16), transparent 60%),
+      radial-gradient(ellipse 600px 500px at 82% 78%, rgba(225,77,171,0.12), transparent 60%),
+      radial-gradient(ellipse 500px 400px at 85% 15%, rgba(255,138,92,0.08), transparent 60%);
+    animation: driftNebula 26s ease-in-out infinite alternate;
+  }
+  @keyframes driftNebula{
+    from{ transform:translate(0,0) scale(1); }
+    to{ transform:translate(-1.5%, 1.5%) scale(1.04); }
+  }
+  .vignette{
+    position:fixed; inset:0; z-index:1; pointer-events:none;
+    box-shadow: inset 0 0 220px 40px rgba(0,0,0,0.75);
+  }
+
+  .shooting-star{
+    position:fixed; top:0; left:0; width:2px; height:2px; z-index:1;
+    background:linear-gradient(90deg, rgba(255,255,255,0.9), transparent);
+    border-radius:2px; pointer-events:none;
+    animation: shoot 1.1s linear forwards;
+  }
+  @keyframes shoot{
+    from{ transform: translate(0,0) rotate(28deg) scaleX(1); opacity:1; }
+    to{ transform: translate(420px,220px) rotate(28deg) scaleX(70); opacity:0; }
+  }
+
+  /* ---------- custom cursor ---------- */
+  .cursor-dot,.cursor-ring{
+    position:fixed; top:0; left:0; z-index:1000;
+    pointer-events:none; border-radius:50%;
+    opacity:0; transition:opacity .2s ease;
+  }
+  .cursor-dot{
+    width:6px; height:6px; margin:-3px 0 0 -3px;
+    background:var(--ink);
+  }
+  .cursor-ring{
+    width:34px; height:34px; margin:-17px 0 0 -17px;
+    border:1px solid rgba(244,242,251,0.5);
+    transition: opacity .2s ease, width .25s var(--ease), height .25s var(--ease), margin .25s var(--ease), border-color .25s ease;
+  }
+  html.has-cursor .cursor-dot,
+  html.has-cursor .cursor-ring{ opacity:1; }
+  html.has-cursor, html.has-cursor *{ cursor:none; }
+  .cursor-ring.is-hover{
+    width:56px; height:56px; margin:-28px 0 0 -28px;
+    border-color: var(--violet-soft);
+  }
+
+  /* ---------- badges / chrome ---------- */
+  .preview-badge{
+    position:fixed; top:22px; right:26px; z-index:50;
+    font-family:var(--font-mono); font-size:11px; letter-spacing:0.14em;
+    color:var(--ink-faint); text-transform:uppercase;
+    padding:7px 12px; border:1px solid var(--line); border-radius:999px;
+    background:rgba(255,255,255,0.03);
+  }
+
+  /* ---------- hamburger menu ---------- */
+  .menu-toggle{
+    position:fixed; top:22px; left:26px; z-index:70;
+    width:46px; height:46px; border-radius:12px;
+    display:flex; flex-direction:column; align-items:center; justify-content:center; gap:5px;
+    background:rgba(15,15,34,0.72); border:1px solid var(--line);
+    backdrop-filter: blur(10px); cursor:pointer;
+  }
+  .menu-toggle__bar{
+    width:20px; height:2px; border-radius:2px; background:var(--ink);
+    transition: transform .3s var(--ease), opacity .2s ease;
+  }
+  .menu-toggle[aria-expanded="true"] .menu-toggle__bar:nth-child(1){ transform:translateY(7px) rotate(45deg); }
+  .menu-toggle[aria-expanded="true"] .menu-toggle__bar:nth-child(2){ opacity:0; }
+  .menu-toggle[aria-expanded="true"] .menu-toggle__bar:nth-child(3){ transform:translateY(-7px) rotate(-45deg); }
+
+  .menu-overlay{
+    position:fixed; inset:0; z-index:65;
+    background:rgba(6,6,14,0.55);
+    opacity:0; pointer-events:none;
+    transition:opacity .3s ease;
+  }
+  .menu-overlay.is-open{ opacity:1; pointer-events:auto; }
+
+  .side-menu{
+    position:fixed; top:0; left:0; bottom:0; z-index:68;
+    width:268px; max-width:80vw;
+    background:rgba(13,13,30,0.92); backdrop-filter: blur(18px);
+    border-right:1px solid var(--line);
+    padding:96px 26px 26px;
+    transform:translateX(-100%);
+    transition: transform .4s var(--ease);
+  }
+  .side-menu.is-open{ transform:translateX(0); }
+
+  .side-menu__brand{
+    position:absolute; top:28px; left:28px; z-index:2;
+    display:flex; align-items:center; gap:10px;
+    font-family:var(--font-display); font-weight:700; font-size:15px; color:var(--ink);
+  }
+
+  .side-menu__list{ display:flex; flex-direction:column; gap:4px; }
+  .side-menu__link{
+    display:flex; align-items:center; gap:10px;
+    width:100%; text-align:left; background:none; border:none; cursor:pointer;
+    font-family:var(--font-display); font-weight:600; font-size:16px;
+    color:var(--ink-dim); padding:12px 14px; border-radius:10px;
+    transition: background .2s ease, color .2s ease;
+  }
+  .side-menu__link:hover{ background:rgba(255,255,255,0.07); color:var(--ink); }
+  .side-menu__link[aria-current="true"]{
+    color:#fff; background:linear-gradient(135deg, var(--violet), var(--magenta));
+  }
+  .side-menu__dot{
+    width:6px; height:6px; border-radius:50%; background:currentColor; opacity:0.6; flex-shrink:0;
+  }
+
+  /* ---------- badges / chrome ---------- */
+  .preview-badge{
+    position:fixed; top:22px; right:26px; z-index:50;
+    font-family:var(--font-mono); font-size:11px; letter-spacing:0.14em;
+    color:var(--ink-faint); text-transform:uppercase;
+    padding:7px 12px; border:1px solid var(--line); border-radius:999px;
+    background:rgba(255,255,255,0.03);
+  }
+
+  /* ---------- app / views ---------- */
+  .app{ position:relative; z-index:2; width:100%; height:100%; }
+  .view{
+    position:absolute; inset:0;
+    display:none;
+    overflow-y:auto;
+  }
+  .view.is-active{ display:block; }
+  .view-inner{
+    max-width:1180px; margin:0 auto;
+    padding:110px 48px 90px;
+    min-height:100%;
+  }
+
+  .reveal{ animation: riseIn .6s var(--ease) both; }
+  @keyframes riseIn{
+    from{ opacity:0; transform:translateY(14px); }
+    to{ opacity:1; transform:translateY(0); }
+  }
+
+  /* ---------- HOME / ORBIT ---------- */
+  #home .view-inner{
+    padding:0; max-width:none;
+    display:flex; align-items:center; justify-content:center;
+    height:100%;
+  }
+  .stage{
+    position:relative;
+    width:min(1180px, 92vw);
+    height:min(760px, 82vh);
+  }
+  .stage svg.orbit-lines{
+    position:absolute; inset:0; width:100%; height:100%;
+    overflow:visible;
+  }
+  .orbit-lines path{
+    fill:none; stroke:var(--line-strong); stroke-width:0.5;
+    stroke-dasharray:1 5; stroke-linecap:round;
+    animation: dashFlow 9s linear infinite;
+    transition: stroke .3s ease, stroke-width .3s ease, filter .3s ease;
+  }
+  @keyframes dashFlow{ to{ stroke-dashoffset:-24; } }
+
+  .orbit-lines path.is-lit{
+    stroke-width:0.9;
+    filter: drop-shadow(0 0 7px currentColor);
+  }
+  .orbit-lines path[data-path="process"].is-lit{ stroke:#8a63ff; color:#8a63ff; }
+  .orbit-lines path[data-path="playground"].is-lit{ stroke:#e14dab; color:#e14dab; }
+  .orbit-lines path[data-path="about"].is-lit{ stroke:#ff9a66; color:#ff9a66; }
+  .orbit-lines path[data-path="contact"].is-lit{ stroke:#4ea1ff; color:#4ea1ff; }
+
+  .home-caption{
+    position:absolute; left:50%; top:calc(48% + 118px);
+    transform:translateX(-50%);
+    font-family:var(--font-mono); font-size:12px; letter-spacing:0.08em;
+    color:var(--ink-faint); white-space:nowrap;
+  }
+
+  .sparkle{ position:absolute; color:var(--ink-dim); opacity:0.5; animation: twinkle 3.2s ease-in-out infinite; }
+  @keyframes twinkle{ 0%,100%{opacity:0.15; transform:scale(0.85);} 50%{opacity:0.65; transform:scale(1);} }
+
+  /* planets */
+  .planet{
+    position:absolute; transform:translate(-50%,-50%);
+    background:none; border:none; padding:0; cursor:pointer;
+    display:flex; align-items:center; justify-content:center;
+    animation: floaty 7s ease-in-out infinite;
+    z-index:2;
+  }
+  .planet:focus-visible .planet__ring{ outline:2px solid var(--blue); outline-offset:5px; }
+  @keyframes floaty{
+    0%,100%{ transform:translate(-50%,-50%) translateY(0px); }
+    50%{ transform:translate(-50%,-50%) translateY(-9px); }
+  }
+  .planet__ring{
+    border-radius:50%; padding:5px;
+    background:linear-gradient(150deg, rgba(255,255,255,0.65), rgba(255,255,255,0.08));
+    transition: transform .3s var(--ease), box-shadow .3s var(--ease);
+  }
+  .planet:hover .planet__ring, .planet:focus-visible .planet__ring{
+    transform:scale(1.07);
+  }
+  .planet__body{
+    position:relative; overflow:hidden; border-radius:50%;
+    display:flex; align-items:center; justify-content:center;
+    box-shadow: inset 0 -10px 26px rgba(0,0,0,0.35), inset 0 8px 18px rgba(255,255,255,0.18);
+  }
+  .planet__label{
+    position:relative; z-index:2;
+    font-family:var(--font-display); font-weight:600; color:#fff;
+    text-shadow:0 1px 8px rgba(0,0,0,0.4);
+    text-align:center; line-height:1.15;
+  }
+
+  /* satellites — tiny moons circling each planet */
+  .moon-orbit{
+    position:absolute; top:50%; left:50%; width:0; height:0;
+    pointer-events:none; z-index:1;
+  }
+  .moon{
+    position:absolute; top:0; left:0; border-radius:50%;
+    width:7px; height:7px;
+    background:radial-gradient(circle at 35% 30%, #ffffff, #b7b3e0 75%);
+    box-shadow:0 0 6px rgba(255,255,255,0.55);
+    transform-origin:0 0;
+    /* Static satellites: keep the orbital composition without continuous motion */
+    animation:none;
+    transform:rotate(var(--moon-angle, -32deg)) translateX(var(--orbit-r, 70px));
+  }
+  @keyframes moonOrbit{
+    from{ transform:rotate(0deg) translateX(var(--orbit-r, 70px)); }
+    to{ transform:rotate(360deg) translateX(var(--orbit-r, 70px)); }
+  }
+  .moon-orbit--process .moon{ --orbit-r:80px; --moon-angle:-38deg; }
+  .moon-orbit--playground .moon{ --orbit-r:60px; --moon-angle:34deg; width:5px; height:5px; }
+  .moon-orbit--about .moon{ --orbit-r:66px; --moon-angle:145deg; }
+  .moon-orbit--contact .moon{ --orbit-r:66px; --moon-angle:212deg; width:6px; height:6px; }
+  .moon-orbit--hub-a .moon{ --orbit-r:118px; --orbit-t:10s; }
+  .moon-orbit--hub-b .moon{ --orbit-r:144px; --orbit-t:16s; width:5px; height:5px; animation-direction:reverse; }
+
+  .planet--hub{ left:50%; top:48%; animation:none; z-index:3; }
+  .planet--hub .planet__ring{ width:200px; height:200px; padding:6px; position:relative; }
+  .planet--hub .planet__ring::before{
+    content:''; position:absolute; inset:-26px; border-radius:50%;
+    background:radial-gradient(circle, rgba(123,92,255,0.35), transparent 70%);
+    animation: pulseGlow 3.6s ease-in-out infinite;
+  }
+  @keyframes pulseGlow{ 0%,100%{ opacity:0.5; transform:scale(0.94);} 50%{ opacity:0.95; transform:scale(1.05);} }
+  .planet--hub .planet__body{ width:100%; height:100%; background:var(--void-2); }
+  .planet--hub .planet__spin{
+    position:absolute; inset:-22%; z-index:0;
+    background: conic-gradient(from 0deg, var(--violet), var(--blue), var(--magenta), var(--orange), var(--violet));
+    animation: spinHue 14s linear infinite;
+  }
+  @keyframes spinHue{ to{ transform:rotate(360deg); } }
+  .planet--hub .planet__label{ font-size:24px; }
+
+
+  .planet--process{ left:33.5%; top:29.5%; animation-delay:.4s; }
+  .planet--process .planet__ring{ width:135px; height:135px; }
+  .planet--process .planet__body{ width:100%; height:100%; background:linear-gradient(140deg, #6fa8ff, #8a63ff); }
+  .planet--process .planet__label{ font-size:15px; }
+
+  .planet--playground{ left:70%; top:25%; animation-delay:1.1s; }
+  .planet--playground .planet__ring{ width:125px; height:125px; }
+  .planet--playground .planet__body{ width:100%; height:100%; background:linear-gradient(150deg, #ff9a66 0%, #e14dab 55%, #8a63ff 100%); }
+  .planet--playground .planet__label{ font-size:13px; }
+
+  .planet--about{ left:26%; top:74%; animation-delay:.7s; }
+  .planet--about .planet__ring{ width:110px; height:110px; }
+  .planet--about .planet__body{ width:100%; height:100%; background:linear-gradient(140deg, #ff9a66, #e14dab); }
+  .planet--about .planet__label{ font-size:13px; }
+
+  .planet--contact{ left:76%; top:76%; animation-delay:1.6s; }
+  .planet--contact .planet__ring{ width:110px; height:110px; }
+  .planet--contact .planet__body{ width:100%; height:100%; background:linear-gradient(140deg, #e14dab, #8a63ff 60%, #4ea1ff); }
+  .planet--contact .planet__label{ font-size:13px; }
+
+
+  /* tiny CV satellite */
+  .cv-satellite{
+    position:absolute; left:19%; top:80%; transform:translate(-50%,-50%);
+    width:54px; height:54px; z-index:5;
+    display:flex; align-items:center; justify-content:center; text-decoration:none;
+    background:none; border:none; padding:0; cursor:pointer;
+    animation:floaty 7s ease-in-out infinite;
+    animation-delay:.7s;
+  }
+  .cv-satellite::before{
+    content:''; position:absolute; inset:-8px; border:1px solid rgba(101,230,196,.32); border-radius:50%;
+  }
+  
+  .cv-satellite:hover,
+  @keyframes cvFloat{
+    0%,100%{transform:translate(-50%,-50%) translateY(0)}
+    50%{transform:translate(-50%,-50%) translateY(-7px)}
+  }
+  @media (max-width:760px){.cv-satellite{left:50%;top:91%;width:42px;height:42px;font-size:10px}}
+
+  /* tags */
+  .tag{
+    position:absolute; transform:translate(-50%,-50%);
+    font-family:var(--font-display); font-weight:600; font-size:12.5px; color:#fff;
+    background:linear-gradient(135deg, #4ea1ff, #6f7bff);
+    border:none; padding:9px 16px; border-radius:999px; cursor:pointer;
+    box-shadow:0 6px 18px rgba(78,161,255,0.28);
+    animation: driftTag 8s ease-in-out infinite;
+    z-index:6;
+  }
+  @keyframes driftTag{
+    0%,100%{ transform:translate(-50%,-50%) rotate(var(--rot,0deg)) translateY(0); }
+    50%{ transform:translate(-50%,-50%) rotate(var(--rot,0deg)) translateY(-6px); }
+  }
+  .tag--product{ left:87%; top:8%; --rot:-4deg; background:linear-gradient(135deg, #b85d18, #9f3f2f); box-shadow:0 6px 18px rgba(184,93,24,0.30); }
+  /* Mobile takes the former End-to-End UI/UX position */
+  .tag--mobile{ left:87%; top:88%; --rot:4deg; background:linear-gradient(135deg, #16805f, #277844); box-shadow:0 6px 18px rgba(22,128,95,0.30); }
+  /* End-to-End UI/UX sits close to the Process planet, slightly to its left */
+  .tag--uiux{ left:14%; top:24%; --rot:-8deg; background:linear-gradient(135deg, #9b2f78, #5940ad); box-shadow:0 6px 18px rgba(155,47,120,0.30); }
+
+  /* sticky notes */
+  .sticky{
+    position:absolute; transform:translate(-50%,-50%) rotate(var(--rot,0deg));
+    width:172px; padding:16px 16px 18px;
+    border-radius:4px 4px 10px 10px;
+    font-family:var(--font-body); font-size:12.5px; line-height:1.45; font-style:italic;
+    box-shadow:0 14px 30px rgba(0,0,0,0.35);
+    animation: driftNote 9s ease-in-out infinite;
+  }
+  @keyframes driftNote{
+    0%,100%{ transform:translate(-50%,-50%) rotate(var(--rot,0deg)) translateY(0); }
+    50%{ transform:translate(-50%,-50%) rotate(var(--rot,0deg)) translateY(-5px); }
+  }
+  .sticky--blue{ left:10%; top:50%; --rot:-6deg; background:var(--note-blue); color:var(--note-blue-ink); }
+  .sticky--pink{ left:90%; top:50%; --rot:5deg; background:var(--note-pink); color:var(--note-pink-ink); }
+
+  /* hover card */
+  .hovercard{
+    position:absolute; z-index:20; width:230px;
+    background:rgba(18,18,42,0.9); border:1px solid var(--line-strong);
+    border-radius:14px; padding:16px 18px;
+    backdrop-filter: blur(14px);
+    opacity:0; transform:translateY(6px) scale(0.97);
+    pointer-events:none;
+    transition: opacity .22s var(--ease), transform .22s var(--ease);
+    box-shadow:0 20px 40px rgba(0,0,0,0.45);
+  }
+  .hovercard.is-visible{ opacity:1; transform:translateY(0) scale(1); }
+  .hovercard__title{ font-family:var(--font-display); font-weight:600; font-size:14px; margin-bottom:6px; }
+  .hovercard__desc{ font-size:12.5px; color:var(--ink-dim); line-height:1.5; margin-bottom:10px; }
+  .hovercard__cta{ font-family:var(--font-mono); font-size:11px; color:var(--violet-soft); letter-spacing:0.04em; }
+
+  /* ---------- WARP TRANSITION ---------- */
+  .warp{
+    position:fixed; inset:0; z-index:900; pointer-events:none;
+    background: radial-gradient(circle at center, #fff, var(--warp-color, var(--violet)) 34%, transparent 72%);
+    opacity:0; transform:scale(0);
+  }
+  .warp.warp-in{ animation: warpIn .38s var(--ease) forwards; }
+  .warp.warp-out{ animation: warpOut .42s var(--ease) forwards; }
+  @keyframes warpIn{ from{ opacity:0; transform:scale(0);} to{ opacity:1; transform:scale(1);} }
+  @keyframes warpOut{ from{ opacity:1; transform:scale(1);} to{ opacity:0; transform:scale(2.6);} }
+
+  /* ---------- shared section chrome ---------- */
+  .eyebrow{
+    display:inline-flex; align-items:center; gap:8px;
+    font-family:var(--font-mono); font-size:11.5px; letter-spacing:0.12em;
+    text-transform:uppercase; color:var(--violet-soft);
+    margin-bottom:18px;
+  }
+  .mini-orbit{
+    width:16px; height:16px; border-radius:50%; flex-shrink:0;
+    display:inline-block;
+    background:#8066d8;
+    border:none;
+    box-shadow:none;
+    filter:none;
+    opacity:.72;
+  }
+  /* Individual section planets — restores the coloured markers from the original visual language */
+  #process .mini-orbit{background:radial-gradient(circle at 34% 30%,#fff 0 9%,#70d7ff 11% 28%,#4ea1ff 31% 62%,#173765 65% 100%);box-shadow:0 0 12px rgba(78,161,255,.32);}
+  #orbit .mini-orbit{background:radial-gradient(circle at 34% 30%,#fff 0 9%,#c19cff 11% 28%,#7b5cff 31% 62%,#32186e 65% 100%);box-shadow:0 0 12px rgba(123,92,255,.34);}
+  #playground .mini-orbit{background:radial-gradient(circle at 34% 30%,#fff 0 9%,#ff9bd7 11% 28%,#e14dab 31% 62%,#651d50 65% 100%);box-shadow:0 0 12px rgba(225,77,171,.32);}
+  #about .mini-orbit{background:radial-gradient(circle at 34% 30%,#fff 0 9%,#ffd58a 11% 28%,#ff9f43 31% 62%,#6b3514 65% 100%);box-shadow:0 0 12px rgba(255,159,67,.30);}
+  #contact .mini-orbit{background:radial-gradient(circle at 34% 30%,#fff 0 9%,#8ff0c5 11% 28%,#36c98f 31% 62%,#15553f 65% 100%);box-shadow:0 0 12px rgba(54,201,143,.30);}
+  .side-menu__brand .mini-orbit{background:radial-gradient(circle at 34% 30%,#fff 0 9%,#c19cff 11% 28%,#7b5cff 31% 62%,#32186e 65% 100%);}
+  .section-title{ font-size:40px; font-weight:700; margin-bottom:14px; }
+  .section-sub{ font-size:15.5px; color:var(--ink-dim); max-width:520px; line-height:1.6; margin-bottom:10px; }
+
+  .pill{
+    display:inline-flex; align-items:center; font-family:var(--font-display);
+    font-weight:600; font-size:12px; padding:7px 14px; border-radius:999px;
+    border:1px solid var(--line);
+  }
+  .pill--product{ background:rgba(78,161,255,0.14); color:#8ec3ff; border-color:rgba(78,161,255,0.3); }
+  .pill--uiux{ background:rgba(225,77,171,0.14); color:#f0a1d3; border-color:rgba(225,77,171,0.3); }
+  .pill--mobile{ background:rgba(123,92,255,0.14); color:#b6a4ff; border-color:rgba(123,92,255,0.3); }
+
+  /* ---------- back button ---------- */
+  .back-btn{
+    position:fixed; top:22px; left:82px; z-index:70;
+    width:46px; height:46px; border-radius:12px;
+    display:none; align-items:center; justify-content:center;
+    background:rgba(15,15,34,0.72); border:1px solid var(--line);
+    backdrop-filter: blur(10px); cursor:pointer; color:var(--ink);
+    transition: background .2s ease, transform .2s ease;
+  }
+  .back-btn:hover{ background:rgba(255,255,255,0.1); transform:translateX(-2px); }
+  .back-btn svg{ width:20px; height:20px; }
+  body[data-view]:not([data-view="home"]) .back-btn{ display:flex; }
+
+  .timeline{ position:relative; margin-top:56px; }
+  .timeline__line{
+    position:absolute; left:0; right:0; top:170px; height:1px;
+    background:linear-gradient(90deg, transparent, var(--line-strong) 8%, var(--line-strong) 92%, transparent);
+  }
+  .timeline__steps{ display:flex; }
+  .timeline__step{
+    flex:1; min-width:0; display:flex; flex-direction:column; align-items:center;
+    height:340px; position:relative; padding:0 6px;
+  }
+  .timeline__spacer{ flex:1; }
+  .timeline__node{
+    width:12px; height:12px; border-radius:50%; z-index:2;
+    background:var(--violet-soft); box-shadow:0 0 0 5px rgba(154,132,255,0.18);
+    margin:10px 0; flex-shrink:0;
+  }
+  .timeline__block{ text-align:center; max-width:170px; }
+  .timeline__index{
+    display:block; font-family:var(--font-mono); font-size:11px; color:var(--ink-faint);
+    letter-spacing:0.1em; margin-bottom:8px;
+  }
+  .timeline__pill{
+    display:inline-block; font-family:var(--font-display); font-weight:600; font-size:13px;
+    color:#fff; background:linear-gradient(135deg, var(--violet), var(--magenta));
+    padding:9px 15px; border-radius:10px; margin-bottom:10px;
+  }
+  .timeline__caption{ font-size:12.5px; color:var(--ink-dim); line-height:1.5; }
+
+  .timeline__step--up .timeline__block{ order:1; margin-bottom:8px; }
+  .timeline__step--up .timeline__node{ order:2; }
+  .timeline__step--up .timeline__spacer{ order:3; }
+  .timeline__step--down .timeline__spacer{ order:1; }
+  .timeline__step--down .timeline__node{ order:2; }
+  .timeline__step--down .timeline__block{ order:3; margin-top:8px; }
+
+  /* ---------- PLAYGROUND view ---------- */
+  .filters{ display:flex; gap:10px; margin:36px 0 30px; flex-wrap:wrap; }
+  .filter{
+    font-family:var(--font-display); font-weight:600; font-size:12.5px;
+    padding:9px 16px; border-radius:999px; border:1px solid var(--line);
+    background:rgba(255,255,255,0.03); color:var(--ink-dim); cursor:pointer;
+    transition: all .2s ease;
+  }
+  .filter:hover{ color:var(--ink); border-color:var(--line-strong); }
+  .filter[aria-pressed="true"]{
+    background:linear-gradient(135deg, var(--violet), var(--magenta));
+    color:#fff; border-color:transparent;
+  }
+
+  .project-grid{ display:grid; grid-template-columns:repeat(2, 1fr); gap:18px; }
+  .project-card{
+    background:var(--glass); border:1px solid var(--line); border-radius:16px;
+    padding:22px; transition: border-color .2s ease, transform .2s ease;
+  }
+  .project-card:hover{ border-color:var(--line-strong); transform:translateY(-3px); }
+  .project-card__tags{ display:flex; gap:8px; margin-bottom:14px; flex-wrap:wrap; }
+  .project-card h3{ font-size:18px; margin-bottom:8px; }
+  .project-card p{ font-size:13.5px; color:var(--ink-dim); line-height:1.55; margin-bottom:14px; }
+  .project-card__cta{ font-family:var(--font-mono); font-size:11.5px; color:var(--violet-soft); }
+  .project-card.is-hidden{ display:none; }
+
+  /* ---------- ABOUT view ---------- */
+  .about-layout{ display:grid; grid-template-columns:1fr 300px; gap:56px; margin-top:36px; }
+  .about-avatar{
+    width:64px; height:64px; border-radius:50%; margin-bottom:24px;
+    background:conic-gradient(var(--violet), var(--blue), var(--magenta), var(--orange), var(--violet));
+  }
+  .about-text p{ font-size:15.5px; line-height:1.75; color:var(--ink-dim); margin-bottom:16px; max-width:520px; }
+  .about-text p strong{ color:var(--ink); font-weight:600; }
+  .toolkit{ margin-top:28px; }
+  .toolkit h3{ font-size:13px; text-transform:uppercase; letter-spacing:0.08em; color:var(--ink-faint); margin-bottom:14px; }
+  .toolkit ul{ display:flex; flex-wrap:wrap; gap:9px; }
+  .toolkit li{
+    font-family:var(--font-mono); font-size:12px; padding:7px 13px;
+    border:1px solid var(--line); border-radius:999px; color:var(--ink-dim);
+  }
+  .facts{ background:var(--glass); border:1px solid var(--line); border-radius:16px; padding:24px; height:fit-content; }
+  .facts dt{ font-family:var(--font-mono); font-size:11px; text-transform:uppercase; letter-spacing:0.08em; color:var(--ink-faint); margin-bottom:5px; }
+  .facts dd{ margin:0 0 20px; font-size:14px; color:var(--ink); }
+  .facts dd:last-child{ margin-bottom:0; }
+
+  /* ---------- CONTACT view ---------- */
+  .contact-layout{ display:grid; grid-template-columns:1fr 1fr; gap:64px; margin-top:36px; }
+  .contact-email{
+    display:inline-block; font-family:var(--font-mono); font-size:19px; color:var(--ink);
+    padding-bottom:6px; border-bottom:1px solid var(--line-strong); margin:20px 0 28px;
+  }
+  .contact-email:hover{ color:var(--violet-soft); }
+  .social-list{ display:flex; gap:22px; }
+  .social-list a{ font-family:var(--font-display); font-weight:600; font-size:13.5px; color:var(--ink-dim); }
+  .social-list a:hover{ color:var(--ink); }
+
+  .field{ margin-bottom:18px; }
+  .field label{ display:block; font-family:var(--font-mono); font-size:11px; text-transform:uppercase; letter-spacing:0.08em; color:var(--ink-faint); margin-bottom:8px; }
+  .field input, .field textarea{
+    width:100%; background:rgba(255,255,255,0.04); border:1px solid var(--line);
+    border-radius:10px; padding:12px 14px; color:var(--ink); font-family:var(--font-body); font-size:14px;
+    resize:vertical;
+  }
+  .field input:focus, .field textarea:focus{ outline:none; border-color:var(--violet-soft); }
+  .send-btn{
+    font-family:var(--font-display); font-weight:600; font-size:14px; color:#fff;
+    background:linear-gradient(135deg, var(--violet), var(--magenta));
+    border:none; padding:13px 26px; border-radius:10px; cursor:pointer;
+    transition: transform .2s ease, box-shadow .2s ease;
+  }
+  .send-btn:hover{ transform:translateY(-2px); box-shadow:0 10px 24px rgba(123,92,255,0.35); }
+
+  /* ---------- small-viewport notice ---------- */
+  .desktop-only{
+    display:none; position:fixed; inset:0; z-index:2000;
+    background:var(--void); color:var(--ink);
+    flex-direction:column; align-items:center; justify-content:center;
+    text-align:center; padding:40px; font-family:var(--font-body);
+  }
+  .desktop-only h2{ font-size:20px; margin-bottom:10px; }
+  .desktop-only p{ color:var(--ink-dim); font-size:14px; max-width:280px; }
+  @media (max-width:760px){
+    .desktop-only{ display:flex; }
+  }
+
+  @media (prefers-reduced-motion: reduce){
+    *, *::before, *::after{ animation-duration:0.001ms !important; animation-iteration-count:1 !important; transition-duration:0.001ms !important; }
+  }
+
+
+  /* ---------- ORBIT CASE STUDY ---------- */
+  .case-study{ margin-top:44px; display:grid; gap:22px; }
+  .case-hero{
+    padding:34px; border:1px solid var(--line-strong); border-radius:20px;
+    background:linear-gradient(135deg, rgba(123,92,255,.13), rgba(225,77,171,.07));
+  }
+  .case-kicker{ font-family:var(--font-mono); font-size:11px; letter-spacing:.12em; text-transform:uppercase; color:var(--violet-soft); margin-bottom:12px; }
+  .case-hero h3{ font-size:27px; margin-bottom:12px; }
+  .case-hero p{ max-width:760px; color:var(--ink-dim); font-size:15px; line-height:1.75; }
+  .case-grid{ display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:18px; }
+  .case-card{ background:var(--glass); border:1px solid var(--line); border-radius:16px; padding:26px; }
+  .case-card h3{ font-size:18px; margin-bottom:10px; }
+  .case-card p{ color:var(--ink-dim); font-size:14px; line-height:1.7; }
+  .case-card ul{ margin-top:12px; display:grid; gap:9px; }
+  .case-card li{ position:relative; padding-left:18px; color:var(--ink-dim); font-size:13.5px; line-height:1.55; }
+  .case-card li::before{ content:'•'; position:absolute; left:0; color:var(--violet-soft); }
+  .case-flow{ display:grid; grid-template-columns:repeat(3,1fr); gap:12px; margin-top:18px; }
+  .case-flow__step{ padding:16px; border-radius:13px; border:1px solid var(--line); background:rgba(255,255,255,.025); }
+  .case-flow__step span{ display:block; font-family:var(--font-mono); color:var(--ink-faint); font-size:10px; letter-spacing:.1em; margin-bottom:7px; }
+  .case-flow__step strong{ font-family:var(--font-display); font-size:13px; }
+  .case-highlight{ padding:30px; border-radius:18px; border:1px solid rgba(225,77,171,.28); background:rgba(225,77,171,.055); }
+  .case-highlight h3{ font-size:21px; margin-bottom:10px; }
+  .case-highlight p{ color:var(--ink-dim); line-height:1.7; max-width:820px; }
+  .case-meta{ display:flex; gap:8px; flex-wrap:wrap; margin-top:18px; }
+  .case-meta span{ font-family:var(--font-mono); font-size:10.5px; color:var(--ink-dim); border:1px solid var(--line); border-radius:999px; padding:7px 11px; }
+  .case-visual{ margin-top:18px; border:1px solid var(--line); border-radius:18px; overflow:hidden; background:rgba(255,255,255,.02); }
+  .case-visual img{ display:block; width:100%; height:auto; }
+  .case-visual--wide{ margin-top:4px; }
+  .case-visual__caption{ padding:11px 14px; font-family:var(--font-mono); font-size:10px; letter-spacing:.08em; text-transform:uppercase; color:var(--ink-faint); border-top:1px solid var(--line); }
+  @media (max-width:900px){ .case-grid,.case-flow{ grid-template-columns:1fr; } }
+
+  /* ---------- DOGGO CASE STUDY ---------- */
+  #doggo .mini-orbit{background:radial-gradient(circle at 34% 30%,#fff 0 9%,#b8f2b0 11% 28%,#63c174 31% 62%,#214f2c 65% 100%);box-shadow:0 0 12px rgba(99,193,116,.30);}
+  .project-card[data-target]{cursor:pointer;}
+  .project-card[data-target]:focus-visible{outline:2px solid var(--violet-soft);outline-offset:4px;}
+  .doggo-visual-grid{display:grid;grid-template-columns:1fr 1fr;gap:18px;}
+  @media(max-width:900px){.doggo-visual-grid{grid-template-columns:1fr;}}
+
+
+  /* Distinct project chip colors */
+  .pill--endtoend{
+    color:#d8c7ff !important;
+    border-color:rgba(151,112,255,.55) !important;
+    background:rgba(126,87,255,.13) !important;
+  }
+  .pill--exploration{
+    color:#ffd0e8 !important;
+    border-color:rgba(241,104,171,.55) !important;
+    background:rgba(225,77,171,.13) !important;
+  }
+  .pill--twosided{
+    color:#bdf4d2 !important;
+    border-color:rgba(82,205,139,.52) !important;
+    background:rgba(67,180,119,.12) !important;
+  }
+  .pill--product{
+    color:#ffd7a3 !important;
+    border-color:rgba(238,166,79,.52) !important;
+    background:rgba(220,139,45,.12) !important;
+  }
+  .pill--mobile{
+    color:#bfe6ff !important;
+    border-color:rgba(86,177,235,.52) !important;
+    background:rgba(61,154,216,.12) !important;
+  }
+
+
+  /* Subtle curved labels integrated into the planet surfaces */
+  .planet__label--curved{
+    position:absolute;
+    inset:50% auto auto 50%;
+    transform:translate(-50%,-50%);
+    width:92%;
+    height:44%;
+    z-index:3;
+    display:block;
+    pointer-events:none;
+    line-height:1;
+  }
+  .planet__label--curved svg{
+    width:100%;
+    height:100%;
+    overflow:visible;
+    display:block;
+  }
+  .planet__label--curved text{
+    fill:#fff;
+    font-family:var(--font-display);
+    font-weight:600;
+    letter-spacing:.01em;
+    paint-order:stroke;
+    stroke:rgba(0,0,0,.16);
+    stroke-width:.55px;
+    text-shadow:none;
+  }
+  .planet--hub .planet__label--curved text{ font-size:22px; }
+  .planet--process .planet__label--curved text{ font-size:19px; }
+  .planet--playground .planet__label--curved text{ font-size:17px; }
+  .planet--about .planet__label--curved text{ font-size:18px; }
+  .planet--contact .planet__label--curved text{ font-size:17px; }
+
+
+  /* CV uses the same ring/body construction as About me, scaled down as its satellite */
+  .cv-satellite__ring{
+    width:54px; height:54px;
+    box-sizing:border-box;
+    border-radius:50%;
+    padding:0;
+    background:none;
+    transition:transform .3s var(--ease), box-shadow .3s var(--ease);
+  }
+  .cv-satellite__body{
+    width:100%; height:100%;
+    box-sizing:border-box;
+    border-radius:50%;
+    display:flex; align-items:center; justify-content:center;
+    background:
+      linear-gradient(140deg, #ff9b86 0%, #ef6f9f 48%, #d94fa4 100%) padding-box,
+      linear-gradient(150deg, rgba(255,255,255,0.58), rgba(255,255,255,0.10)) border-box;
+    border:4px solid transparent;
+    outline:none;
+    box-shadow:inset 0 -10px 26px rgba(0,0,0,0.35), inset 0 8px 18px rgba(255,255,255,0.18);
+    color:#fff;
+    font-family:var(--font-display);
+    font-size:10px;
+    font-weight:700;
+    letter-spacing:.04em;
+    text-shadow:0 1px 8px rgba(0,0,0,0.4);
+  }
+  .cv-satellite:hover .cv-satellite__ring,
+  
+  .cv-satellite:focus-visible .cv-satellite__ring{
+    outline:2px solid var(--blue);
+    outline-offset:5px;
+  }
+
+</style>
+
+<style>
+.cv-satellite,
+.cv-satellite:hover,
+.cv-satellite:focus,
+.cv-satellite:focus-visible,
+.cv-satellite__ring,
+.cv-satellite__ring:hover,
+.cv-satellite__body {
+  outline: none !important;
+}
+.cv-satellite,
+.cv-satellite__ring {
+  border: none !important;
+  box-shadow: none !important;
+}
+.cv-satellite::before,
+.cv-satellite::after,
+.cv-satellite__ring::before,
+.cv-satellite__ring::after {
+  content: none !important;
+  display: none !important;
+}
+</style>
+
+<style>
+/* =========================================================
+   MOBILE FALLBACK — desktop design remains unchanged
+   ========================================================= */
+@media (max-width:760px){
+
+  html, body{
+    overflow:hidden;
+  }
+
+  .preview-badge,
+  .desktop-only{
+    display:none !important;
+  }
+
+  .menu-toggle{
+    top:14px;
+    left:14px;
+    width:42px;
+    height:42px;
+  }
+
+  .side-menu{
+    width:min(286px, 84vw);
+    padding:82px 20px 24px;
+  }
+
+  .side-menu__brand{
+    top:23px;
+    left:22px;
+  }
+
+  .view{
+    overflow-y:auto;
+    overflow-x:hidden;
+    -webkit-overflow-scrolling:touch;
+  }
+
+  .view-inner{
+    padding:84px 20px 64px;
+    max-width:100%;
+  }
+
+  /* HOME becomes a compact vertical constellation rather than a shrunken desktop map */
+  #home .view-inner{
+    height:auto;
+    min-height:100%;
+    padding:76px 14px 70px;
+    display:block;
+  }
+
+  .stage{
+    width:100%;
+    max-width:430px;
+    height:880px;
+    margin:0 auto;
+  }
+
+  .stage .orbit-lines{
+    display:none;
+  }
+
+  .stage .sparkle{
+    display:none;
+  }
+
+  .sticky{
+    display:none;
+  }
+
+  .home-caption{
+    left:50%;
+    top:224px;
+    font-size:10px;
+    letter-spacing:.06em;
+  }
+
+  /* Main planet hierarchy */
+  .planet--hub{
+    left:50%;
+    top:130px;
+  }
+  .planet--hub .planet__ring{
+    width:156px;
+    height:156px;
+  }
+
+  .planet--process{
+    left:30%;
+    top:330px;
+  }
+  .planet--process .planet__ring{
+    width:112px;
+    height:112px;
+  }
+
+  .planet--playground{
+    left:70%;
+    top:352px;
+  }
+  .planet--playground .planet__ring{
+    width:104px;
+    height:104px;
+  }
+
+  .planet--about{
+    left:30%;
+    top:540px;
+  }
+  .planet--about .planet__ring{
+    width:94px;
+    height:94px;
+  }
+
+  .planet--contact{
+    left:70%;
+    top:540px;
+  }
+  .planet--contact .planet__ring{
+    width:94px;
+    height:94px;
+  }
+
+  /* CV remains visually attached to About me */
+  .cv-satellite{
+    left:17% !important;
+    top:592px !important;
+    width:46px !important;
+    height:46px !important;
+  }
+  .cv-satellite__ring{
+    width:46px !important;
+    height:46px !important;
+  }
+  .cv-satellite__body{
+    font-size:9px !important;
+  }
+
+  /* Keep decorative moons quiet on mobile */
+  .moon-orbit{
+    display:none;
+  }
+
+  /* Skill chips become a clean row at the bottom of the constellation */
+  .tag{
+    top:735px !important;
+    transform:translate(-50%,-50%) !important;
+    animation:none !important;
+    font-size:10px;
+    padding:8px 11px;
+    white-space:nowrap;
+  }
+
+  .tag--uiux{
+    left:27% !important;
+  }
+
+  .tag--product{
+    left:55% !important;
+  }
+
+  .tag--mobile{
+    left:81% !important;
+  }
+
+  /* Curved labels remain readable after the planet size reduction */
+  .planet--hub .planet__label--curved text{ font-size:21px; }
+  .planet--process .planet__label--curved text{ font-size:17px; }
+  .planet--playground .planet__label--curved text{ font-size:14px; }
+  .planet--about .planet__label--curved text{ font-size:15px; }
+  .planet--contact .planet__label--curved text{ font-size:14px; }
+
+  /* Content pages */
+  .section-title{
+    font-size:clamp(30px, 10vw, 44px);
+    line-height:1.05;
+  }
+
+  .section-subtitle,
+  .case-hero p{
+    max-width:100%;
+  }
+
+  .case-study{
+    margin-top:30px;
+  }
+
+  .case-hero{
+    padding:22px 18px;
+    border-radius:16px;
+  }
+
+  .case-hero h3{
+    font-size:23px;
+  }
+
+  .case-grid,
+  .case-flow,
+  .doggo-visual-grid,
+  .project-grid{
+    grid-template-columns:1fr !important;
+  }
+
+  .case-card{
+    padding:20px 18px;
+  }
+
+  .case-card img,
+  .case-study img,
+  .doggo-visual-grid img,
+  .project-card img,
+  .flow-image,
+  .visual-image{
+    max-width:100% !important;
+    width:100%;
+    height:auto !important;
+    object-fit:contain;
+  }
+
+  .project-card{
+    min-width:0;
+  }
+
+  .filters{
+    display:flex;
+    flex-wrap:wrap;
+    gap:8px;
+  }
+
+  .filter{
+    font-size:11px;
+  }
+
+  .back-btn{
+    top:14px;
+    right:14px;
+  }
+
+  /* Touch devices should not depend on hover-only presentation */
+  .hovercard{
+    display:none !important;
+  }
+}
+
+@media (max-width:390px){
+  .stage{
+    height:850px;
+  }
+
+  .planet--process{ left:29%; }
+  .planet--playground{ left:71%; }
+  .planet--about{ left:29%; }
+  .planet--contact{ left:71%; }
+
+  .tag{
+    font-size:9px;
+    padding:7px 9px;
+  }
+  .tag--uiux{ left:26% !important; }
+  .tag--product{ left:56% !important; }
+  .tag--mobile{ left:82% !important; }
+}
+</style>
+
+<style>
+.mini-orbit,
+.mini-orbit::before,
+.mini-orbit::after{
+  background:#8066d8 !important;
+  background-image:none !important;
+  border:none !important;
+  box-shadow:none !important;
+  filter:none !important;
+  text-shadow:none !important;
+}
+.mini-orbit{ opacity:.72 !important; }
+.mini-orbit::before,
+.mini-orbit::after{ content:none !important; }
+</style>
+
+
+<style>
+.form-status{
+  min-height:20px;
+  margin-top:12px;
+  font-size:12px;
+  line-height:1.5;
+  color:var(--ink-dim);
+}
+.form-status.is-success{ color:#65e6c4; }
+.form-status.is-error{ color:#ff9b86; }
+</style>
+
+</head>
+<body data-view="home">
+
+  <canvas id="stars"></canvas>
+  <div class="nebula"></div>
+  <div class="vignette"></div>
+  <div class="warp" id="warp"></div>
+  <div class="cursor-dot" id="cursorDot"></div>
+  <div class="cursor-ring" id="cursorRing"></div>
+<button class="menu-toggle" id="menuToggle" aria-expanded="false" aria-controls="sideMenu" aria-label="Open navigation menu">
+    <span class="menu-toggle__bar"></span>
+    <span class="menu-toggle__bar"></span>
+    <span class="menu-toggle__bar"></span>
+  </button>
+
+  <button class="back-btn" data-target="home" aria-label="Back to Orbit">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 12H5M11 18l-6-6 6-6"/></svg>
+  </button>
+
+  <div class="menu-overlay" id="menuOverlay"></div>
+
+  <nav class="side-menu" id="sideMenu" aria-label="Site sections">
+    <div class="side-menu__brand"><span class="mini-orbit"></span> Orbit</div>
+    <ul class="side-menu__list">
+      <li><button class="side-menu__link" data-target="home" aria-current="true"><span class="side-menu__dot"></span>Home</button></li>
+      <li><button class="side-menu__link" data-target="orbit" aria-current="false"><span class="side-menu__dot"></span>Orbit</button></li>
+      <li><button class="side-menu__link" data-target="process" aria-current="false"><span class="side-menu__dot"></span>Process</button></li>
+      <li><button class="side-menu__link" data-target="about" aria-current="false"><span class="side-menu__dot"></span>About me</button></li>
+      <li><button class="side-menu__link" data-target="contact" aria-current="false"><span class="side-menu__dot"></span>Contact</button></li>
+      <li><button class="side-menu__link" data-target="playground" aria-current="false"><span class="side-menu__dot"></span>Playground</button></li>
+    </ul>
+  </nav>
+
+  <div class="app">
+
+    <!-- ============ HOME ============ -->
+    <section class="view is-active" id="home" data-view="home">
+      <div class="view-inner">
+        <div class="stage">
+
+          <svg class="orbit-lines" viewBox="0 0 100 100" preserveAspectRatio="none">
+            <path data-path="process" d="M50,48 Q40,37 30,26"></path>
+            <path data-path="playground" d="M50,48 Q62,35 74,22"></path>
+            <path data-path="about" d="M50,48 Q38,61 26,74"></path>
+            <path data-path="contact" d="M50,48 Q62,61 74,74"></path>
+          </svg>
+
+          <svg class="sparkle" style="left:16%; top:9%; width:16px; height:16px; animation-delay:.2s" viewBox="0 0 24 24" fill="currentColor"><path d="M12 0l2 10 10 2-10 2-2 10-2-10-10-2 10-2z"/></svg>
+          <svg class="sparkle" style="left:50%; top:5%; width:12px; height:12px; animation-delay:1.4s" viewBox="0 0 24 24" fill="currentColor"><path d="M12 0l2 10 10 2-10 2-2 10-2-10-10-2 10-2z"/></svg>
+          <svg class="sparkle" style="left:6%; top:35%; width:10px; height:10px; animation-delay:.8s" viewBox="0 0 24 24" fill="currentColor"><path d="M12 0l2 10 10 2-10 2-2 10-2-10-10-2 10-2z"/></svg>
+          <svg class="sparkle" style="left:96%; top:65%; width:14px; height:14px; animation-delay:2.1s" viewBox="0 0 24 24" fill="currentColor"><path d="M12 0l2 10 10 2-10 2-2 10-2-10-10-2 10-2z"/></svg>
+          <svg class="sparkle" style="left:44%; top:92%; width:12px; height:12px; animation-delay:1.7s" viewBox="0 0 24 24" fill="currentColor"><path d="M12 0l2 10 10 2-10 2-2 10-2-10-10-2 10-2z"/></svg>
+
+          <button class="tag tag--product" data-target="playground" data-filter="product-design"
+            data-title="Product Design" data-desc="Case studies where strategy and interface come together.">
+            Product Design
+          </button>
+
+          <button class="tag tag--mobile" data-target="playground" data-filter="mobile"
+            data-title="Mobile" data-desc="App concepts and flows designed for the smallest, most personal screen.">
+            Mobile
+          </button>
+
+          <button class="tag tag--uiux" data-target="playground" data-filter="end-to-end-ui-ux"
+            data-title="End-to-End UI/UX" data-desc="Interfaces and flows built around how people actually behave.">
+            End-to-End UI/UX
+          </button>
+
+          <div class="sticky sticky--blue">
+            “Make it useful. Make it clear. Make it human.”
+          </div>
+
+          <div class="sticky sticky--pink">
+            “My first real deep dive into product design.”
+          </div>
+
+          <button class="planet planet--hub" data-target="orbit"
+  data-title="Orbit Case Study" data-desc="Deep dive into the Orbit music & sound interaction design project.">
+            <div class="planet__ring">
+              <div class="planet__body">
+                <span class="planet__spin"></span>
+                <span class="planet__label planet__label--curved" aria-label="Orbit">
+      <svg viewBox="0 0 140 42" aria-hidden="true" focusable="false">
+        <defs><path id="curve-orbit" d="M 16 21 Q 70 31 124 21"/></defs>
+        <text><textPath href="#curve-orbit" startOffset="50%" text-anchor="middle">Orbit</textPath></text>
+      </svg>
+    </span>
+              </div>
+            </div>
+          </button>
+          <p class="home-caption">click a planet to explore ↴</p>
+
+          <button class="planet planet--process" data-target="process"
+            data-title="Design Process" data-desc="How a brief turns into a shipped interface, six steady stages at a time.">
+            <div class="planet__ring"><div class="planet__body"><span class="planet__label planet__label--curved" aria-label="Process">
+      <svg viewBox="0 0 140 42" aria-hidden="true" focusable="false">
+        <defs><path id="curve-process" d="M 16 21 Q 70 31 124 21"/></defs>
+        <text><textPath href="#curve-process" startOffset="50%" text-anchor="middle">Process</textPath></text>
+      </svg>
+    </span></div></div>
+            <span class="moon-orbit moon-orbit--process"><span class="moon"></span></span>
+          </button>
+
+          <button class="planet planet--playground" data-target="playground"
+            data-title="Playground" data-desc="Case studies, experiments, and things built just to see if they'd work.">
+            <div class="planet__ring"><div class="planet__body"><span class="planet__label planet__label--curved" aria-label="Playground">
+      <svg viewBox="0 0 140 42" aria-hidden="true" focusable="false">
+        <defs><path id="curve-playground" d="M 16 21 Q 70 31 124 21"/></defs>
+        <text><textPath href="#curve-playground" startOffset="50%" text-anchor="middle">Playground</textPath></text>
+      </svg>
+    </span></div></div>
+            <span class="moon-orbit moon-orbit--playground"><span class="moon"></span></span>
+          </button>
+
+          <button class="planet planet--about" data-target="about"
+            data-title="About me" data-desc="The person behind the pixels — background, tools, and how I like to work.">
+            <div class="planet__ring"><div class="planet__body"><span class="planet__label planet__label--curved" aria-label="About me">
+      <svg viewBox="0 0 140 42" aria-hidden="true" focusable="false">
+        <defs><path id="curve-about" d="M 16 21 Q 70 31 124 21"/></defs>
+        <text><textPath href="#curve-about" startOffset="50%" text-anchor="middle">About me</textPath></text>
+      </svg>
+    </span></div></div>
+          </button>
+
+          <button class="planet planet--contact" data-target="contact"
+            data-title="Contact" data-desc="Have a project in mind? This is where you say hello.">
+            <div class="planet__ring"><div class="planet__body"><span class="planet__label planet__label--curved" aria-label="Contact">
+      <svg viewBox="0 0 140 42" aria-hidden="true" focusable="false">
+        <defs><path id="curve-contact" d="M 16 21 Q 70 31 124 21"/></defs>
+        <text><textPath href="#curve-contact" startOffset="50%" text-anchor="middle">Contact</textPath></text>
+      </svg>
+    </span></div></div>
+            <span class="moon-orbit moon-orbit--contact"><span class="moon"></span></span>
+          </button>
+
+
+          <a class="cv-satellite" href="assets/Denitsa_Micheva_CV.docx" download="Denitsa_Micheva_UIUX_CV.docx" target="_blank" rel="noopener"
+             data-title="CV" data-desc="A quick look at my education, skills and UI/UX background." aria-label="Open Denitsa Micheva CV">
+  <span class="cv-satellite__ring">
+    <span class="cv-satellite__body">CV</span>
+  </span>
+</a>
+
+          <div class="hovercard" id="hovercard">
+            <div class="hovercard__title" id="hovercardTitle"></div>
+            <div class="hovercard__desc" id="hovercardDesc"></div>
+            <div class="hovercard__cta">Click to enter →</div>
+          </div>
+
+        </div>
+      </div>
+    </section>
+
+    <!-- ============ PROCESS ============ -->
+    <section class="view" id="process" data-view="process">
+      <div class="view-inner">
+        <div class="eyebrow reveal"><span class="mini-orbit"></span> How I work</div>
+        <h2 class="section-title reveal">Design Process</h2>
+        <p class="section-sub reveal">Six stages, one steady rhythm — from a messy problem to an interface people can actually use.</p>
+
+        <div class="timeline reveal">
+          <div class="timeline__line"></div>
+          <div class="timeline__steps">
+
+            <div class="timeline__step timeline__step--up">
+              <div class="timeline__block">
+                <span class="timeline__index">01</span>
+                <span class="timeline__pill">Problem &amp; Brief</span>
+                <p class="timeline__caption">Get clear on the real problem before touching a single pixel.</p>
+              </div>
+              <span class="timeline__node"></span>
+              <span class="timeline__spacer"></span>
+            </div>
+
+            <div class="timeline__step timeline__step--down">
+              <span class="timeline__spacer"></span>
+              <span class="timeline__node"></span>
+              <div class="timeline__block">
+                <span class="timeline__index">02</span>
+                <span class="timeline__pill">Research &amp; Empathy</span>
+                <p class="timeline__caption">Talk to real users and map the friction that actually matters.</p>
+              </div>
+            </div>
+
+            <div class="timeline__step timeline__step--up">
+              <div class="timeline__block">
+                <span class="timeline__index">03</span>
+                <span class="timeline__pill">User Flow</span>
+                <p class="timeline__caption">Sketch the path from first click to done, before any UI exists.</p>
+              </div>
+              <span class="timeline__node"></span>
+              <span class="timeline__spacer"></span>
+            </div>
+
+            <div class="timeline__step timeline__step--down">
+              <span class="timeline__spacer"></span>
+              <span class="timeline__node"></span>
+              <div class="timeline__block">
+                <span class="timeline__index">04</span>
+                <span class="timeline__pill">Wireframes</span>
+                <p class="timeline__caption">Structure every screen before a single color decision is made.</p>
+              </div>
+            </div>
+
+            <div class="timeline__step timeline__step--up">
+              <div class="timeline__block">
+                <span class="timeline__index">05</span>
+                <span class="timeline__pill">Moodboard &amp; Style</span>
+                <p class="timeline__caption">Set the tone — color, type, and texture that actually fit the product.</p>
+              </div>
+              <span class="timeline__node"></span>
+              <span class="timeline__spacer"></span>
+            </div>
+
+            <div class="timeline__step timeline__step--down">
+              <span class="timeline__spacer"></span>
+              <span class="timeline__node"></span>
+              <div class="timeline__block">
+                <span class="timeline__index">06</span>
+                <span class="timeline__pill">High-Fi UI &amp; Prototype</span>
+                <p class="timeline__caption">Bring it to life and test it like it's already shipped.</p>
+              </div>
+            </div>
+
+          </div>
+        </div>
+      </div>
+    </section>
+
+
+    <!-- =============Orbit ===============-->
+
+    <section class="view" id="orbit" data-view="orbit">
+  <div class="view-inner">
+    <div class="eyebrow reveal"><span class="mini-orbit"></span> Featured Case Study</div>
+    <h2 class="section-title reveal">Orbit — Listen Together</h2>
+    <p class="section-sub reveal">A mobile music-streaming concept exploring how shared listening can feel social, immediate and simple — even when friends are apart.</p>
+
+    <div class="case-study reveal">
+      <div class="case-hero">
+        <div class="case-kicker">The challenge</div>
+        <h3>Music streaming is usually a solo experience.</h3>
+        <p>Orbit explores a way for people to listen to music and podcasts together in real time without relying on manual link-sharing or complicated setup. The goal was to make shared listening feel like a natural part of the product, not an extra feature.</p>
+        <div class="case-meta">
+          <span>Product Design</span><span>End-to-End UI/UX</span><span>Mobile</span><span>Figma</span>
+        </div>
+      </div>
+
+      <div class="case-grid">
+        <article class="case-card">
+          <h3>The solution</h3>
+          <p>Users can create or join an <strong>Orbit</strong> — a shared listening room where friends stay on the same playback position while keeping useful personal controls.</p>
+          <ul>
+            <li>Start or join a live listening session</li>
+            <li>Invite friends through a simple QR flow</li>
+            <li>Keep the group synchronized in real time</li>
+            <li>Discover content through personalized onboarding</li>
+          </ul>
+        </article>
+
+        <article class="case-card">
+          <h3>Design focus</h3>
+          <p>I focused on balancing the social layer with a familiar music-player experience. Shared actions remain clear, while personal audio control stays available to each listener.</p>
+          <ul>
+            <li>Clear host and guest roles</li>
+            <li>Low-friction joining and inviting</li>
+            <li>Familiar playback patterns</li>
+            <li>A visual language built around the Orbit metaphor</li>
+          </ul>
+        </article>
+      </div>
+
+      <div class="case-card">
+        <div class="case-kicker">Core journey</div>
+        <h3>From personal taste to a shared session</h3>
+        <p>The experience begins with lightweight personalization and moves naturally into discovery and shared listening.</p>
+        <div class="case-flow">
+          <div class="case-flow__step"><span>01</span><strong>Choose genres &amp; artists</strong></div>
+          <div class="case-flow__step"><span>02</span><strong>Discover music</strong></div>
+          <div class="case-flow__step"><span>03</span><strong>Start or join an Orbit</strong></div>
+        </div>
+        <div class="case-visual">
+          <img src="images/profile-photo.png" alt="Orbit onboarding screens for genre selection, artist preferences and connecting with friends">
+          <div class="case-visual__caption">Personalized onboarding</div>
+        </div>
+      </div>
+
+      <div class="case-grid">
+        <article class="case-card">
+          <div class="case-kicker">Host experience</div>
+          <h3>Start, invite &amp; manage</h3>
+          <p>The host can start an Orbit directly from the player, see who is listening, invite more friends through QR and manage the shared session.</p>
+          <div class="case-visual"><img src="images/orbit-onboarding.png" alt="Orbit host flow showing the music player and starting an Orbit"><div class="case-visual__caption">Start an Orbit</div></div>
+          <div class="case-visual"><img src="images/orbit-hostConnect.png" alt="Orbit host screens for inviting friends by QR code and managing participants"><div class="case-visual__caption">Invite &amp; manage</div></div>
+        </article>
+
+        <article class="case-card">
+          <div class="case-kicker">Guest experience</div>
+          <h3>Join &amp; stay in sync</h3>
+          <p>Guests enter at the current playback position and remain synchronized with the session while retaining control over their own sound experience.</p>
+          <div class="case-visual"><img src="images/orbit-guest.png" alt="Orbit guest flow showing joining Maria’s Orbit and synchronized listening"><div class="case-visual__caption">Join &amp; listen in sync</div></div>
+        </article>
+      </div>
+
+      <div class="case-visual case-visual--wide"><img src="images/orbit-system.png" alt="Orbit mobile interface system showing discovery, sessions, profiles and playback"><div class="case-visual__caption">One system. One Orbit.</div></div>
+
+      <div class="case-highlight">
+        <div class="case-kicker">Outcome</div>
+        <h3>One system. One Orbit.</h3>
+        <p>The final concept brings onboarding, discovery, playback and shared listening into one visual system. This case study is an exploration of the product idea and interface direction; the shared-listening hypothesis would be the next thing to validate through usability testing and behavioral data.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+
+    <!-- ============ DOGGO CASE STUDY ============ -->
+    <section class="view" id="doggo" data-view="doggo">
+      <div class="view-inner">
+        <div class="eyebrow reveal"><span class="mini-orbit"></span> UX/UI Case Study</div>
+        <h2 class="section-title reveal">DogGo — Dog Walking, Made Simple</h2>
+        <p class="section-sub reveal">An earlier UX exploration of a two-sided mobile service connecting dog owners with walkers.</p>
+        <div class="case-study">
+          <div class="case-hero reveal">
+            <div class="case-kicker">Earlier UX exploration</div>
+            <h3>Designing for both sides of one service</h3>
+            <p><strong>DogGo was an earlier UX exploration focused on designing a two-sided service for dog owners and walkers. The project helped me understand how different user needs translate into connected flows within the same product.</strong></p>
+            <div class="case-meta"><span>UX Exploration</span><span>Two-Sided Platform</span><span>Product Design</span><span>Mobile</span></div>
+          </div>
+
+          <div class="case-highlight reveal">
+            <div class="case-kicker">From discovery to booking</div>
+            <h3>Mapping the owner journey before designing the interface.</h3>
+            <p>I broke the core owner journey into two focused flows: discovering the right walker and completing the booking with as little friction as possible.</p>
+          </div>
+
+          <div class="case-visual case-visual--wide reveal">
+            <img src="images/doggo-flow-main.png" alt="DogGo Search and Discovery user flow from Home through filters and results to a walker profile, including a no-results path">
+            <div class="case-visual__caption">01 · Search &amp; Discovery Flow</div>
+          </div>
+          <div class="case-card reveal">
+            <p>I mapped the discovery flow to keep the path from search to walker selection simple, while also considering the no-results scenario.</p>
+          </div>
+
+          <div class="case-visual case-visual--wide reveal">
+            <img src="images/doggo-flow-search.png" alt="DogGo main booking action flow from walker profile to confirmation, booking confirmed and home">
+            <div class="case-visual__caption">02 · Main Action Flow</div>
+          </div>
+          <div class="case-card reveal">
+            <p>Once a walker is selected, the booking flow is intentionally short, reducing the number of steps between decision and confirmation.</p>
+          </div>
+
+          <div class="case-highlight reveal">
+            <div class="case-kicker">Selected interface screens</div>
+            <h3>Two perspectives, one connected service.</h3>
+            <p>These selected screens show the product from both sides: the owner can discover and follow an active walk, while the walker can manage requests and track the walk in real time.</p>
+          </div>
+          <div class="case-visual case-visual--wide reveal">
+            <img src="images/doggo-screens.png" alt="Four selected DogGo mobile screens showing the owner home and live tracking views alongside the walker dashboard and active walk tracking view">
+            <div class="case-visual__caption">Owner &amp; Walker · Selected screens</div>
+          </div>
+
+          <div class="case-highlight reveal">
+            <div class="case-kicker">What I learned</div>
+            <h3>Two users. One shared experience.</h3>
+            <p>Designing DogGo taught me to think beyond individual screens and focus on how two user journeys connect within one product. Working through both sides helped me understand the importance of clear information architecture, consistent flows and designing around different user needs within the same system.</p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============ PLAYGROUND ============ -->
+    <section class="view" id="playground" data-view="playground">
+      <div class="view-inner">
+        <div class="eyebrow reveal"><span class="mini-orbit"></span> Explore</div>
+        <h2 class="section-title reveal">Playground</h2>
+        <p class="section-sub reveal">Case studies, experiments, and things I built because I couldn't help myself.</p>
+
+        <div class="filters reveal" id="filters" role="group" aria-label="Filter projects by type">
+          <button class="filter" data-filter="all" aria-pressed="true">All</button>
+          <button class="filter" data-filter="end-to-end-ui-ux" aria-pressed="false">End-to-End UI/UX</button>
+          <button class="filter" data-filter="ux-exploration" aria-pressed="false">UX Exploration</button>
+          <button class="filter" data-filter="two-sided-platform" aria-pressed="false">Two-Sided Platform</button>
+          <button class="filter" data-filter="product-design" aria-pressed="false">Product Design</button>
+          <button class="filter" data-filter="mobile" aria-pressed="false">Mobile</button>
+        </div>
+
+        <div class="project-grid reveal" id="projectGrid">
+
+          <article class="project-card" data-tags="end-to-end-ui-ux product-design mobile" data-target="orbit" role="button" tabindex="0" aria-label="Open Orbit case study">
+            <div class="project-card__tags"><span class="pill pill--endtoend">End-to-End UI/UX</span><span class="pill pill--product">Product Design</span><span class="pill pill--mobile">Mobile</span></div>
+            <h3>Orbit — Listen Together</h3>
+            <p>A shared-listening mobile experience that turns music into a social space — from discovery and playback to creating and joining live Orbit sessions.</p>
+            <span class="project-card__cta">Case study →</span>
+          </article>
+
+          <article class="project-card" data-tags="ux-exploration two-sided-platform product-design mobile" data-target="doggo" role="button" tabindex="0" aria-label="Open DogGo case study">
+            <div class="project-card__tags"><span class="pill pill--exploration">UX Exploration</span><span class="pill pill--twosided">Two-Sided Platform</span><span class="pill pill--product">Product Design</span><span class="pill pill--mobile">Mobile</span></div>
+            <h3>DogGo — Dog Walking App</h3>
+            <p>A two-sided mobile experience designed to connect dog owners with trusted walkers — making discovery, booking, scheduling and walk tracking simple for both sides.</p>
+            <span class="project-card__cta">Case study →</span>
+          </article>
+
+        </div>
+      </div>
+    </section>
+
+    <!-- ============ ABOUT ============ -->
+    <section class="view" id="about" data-view="about">
+      <div class="view-inner">
+        <div class="eyebrow reveal"><span class="mini-orbit"></span> The person behind Orbit</div>
+        <h2 class="section-title reveal">About me</h2>
+
+        <div class="about-layout reveal">
+          <div class="about-text">
+            <img src="images/doggo-extra.jpg" alt="Denitsa Micheva" class="about-avatar">
+            <p><strong>I design things</strong> and collect hobbies along the way.
+             Most days, you’ll find me somewhere between a design file, a good book, and a new thing I’ve decided I absolutely need to learn. I like understanding how things work — especially when they’re complicated, confusing, or just not quite right yet.</p>
+            <p>Curiosity is probably my most consistent hobby. Everything else just rotates around it.</p>
+
+            <div class="toolkit">
+              <h3>CURRENTLY IN MY TOOLBOX</h3>
+              <ul>
+               <li>Figma</li><li>Canva</li><li>HTML / CSS</li><li>Design Systems</li><li>User Research</li><li>Prototyping</li><li>Books</li><li>observation</li>
+              </ul>
+            </div>
+          </div>
+
+          <dl class="facts">
+            <dt>Based in</dt>
+            <dd>Sofia, Bulgaria</dd>
+            <dt>Currently</dt>
+            <dd>Studying in TU - Sofia and exploring the field of UI/UX design</dd>
+            <dt>Say hi about</dt>
+            <dd>Have a project or idea? I'd love to hear about it.</dd>
+          </dl>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============ CONTACT ============ -->
+    <section class="view" id="contact" data-view="contact">
+      <div class="view-inner">
+        <div class="eyebrow reveal"><span class="mini-orbit"></span> Get in touch</div>
+        <h2 class="section-title reveal">Let's talk</h2>
+
+        <div class="contact-layout reveal">
+          <div>
+            <p class="section-sub">Have a project in mind, a question, or just want to connect? Let’s build something great together—my inbox is always open.</p>
+            <a class="contact-email" href="https://mail.google.com/mail/?view=cm&fs=1&to=denitsamicheva0@gmail.com" target="_blank" rel="noopener noreferrer">denitsamicheva0@gmail.com</a>
+            <div class="social-list">
+              <a href="https://www.linkedin.com/in/denitsa-micheva-21b409389" target="_blank" rel="noopener noreferrer">LinkedIn</a>
+              <a href="https://www.behance.net/denitsamicheva" target="_blank" rel="noopener noreferrer">Behance</a>
+            </div>
+          </div>
+
+          <form id="contactForm" action="https://formspree.io/f/mljdkvbr" method="POST">
+              <div class="field">
+      <label for="cName">Name</label>
+    <input id="cName" name="name" type="text" placeholder="Your name" required>
+  </div>
+  <div class="field">
+    <label for="cEmail">Email</label>
+    <input id="cEmail" name="email" type="email" placeholder="you@example.com" required>
+  </div>
+  <div class="field">
+    <label for="cMsg">Message</label>
+    <textarea id="cMsg" name="message" rows="4" placeholder="Tell me about your project" required></textarea>
+  </div>
+  <button class="send-btn" type="submit">Send message</button><p id="formStatus" class="form-status" aria-live="polite"></p></form>
+        </div>
+      </div>
+    </section>
+
+  </div>
+<script>
+(function(){
+
+  var reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+  /* ---------- starfield ---------- */
+  var canvas = document.getElementById('stars');
+  var ctx = canvas.getContext('2d');
+  var stars = [];
+
+  function resize(){
+    canvas.width = window.innerWidth;
+    canvas.height = window.innerHeight;
+    stars = [];
+    var count = Math.floor((canvas.width * canvas.height) / 9000);
+    for(var i=0;i<count;i++){
+      stars.push({
+        x: Math.random()*canvas.width,
+        y: Math.random()*canvas.height,
+        r: Math.random()*1.3 + 0.3,
+        phase: Math.random()*Math.PI*2,
+        speed: Math.random()*0.015 + 0.005
+      });
+    }
+  }
+  window.addEventListener('resize', resize);
+  resize();
+
+  function drawStars(t){
+    ctx.clearRect(0,0,canvas.width,canvas.height);
+    for(var i=0;i<stars.length;i++){
+      var s = stars[i];
+      var o = reduceMotion ? 0.5 : 0.35 + 0.5*Math.sin(t*s.speed + s.phase);
+      ctx.beginPath();
+      ctx.arc(s.x, s.y, s.r, 0, Math.PI*2);
+      ctx.fillStyle = 'rgba(244,242,251,' + Math.max(0,o) + ')';
+      ctx.fill();
+    }
+    requestAnimationFrame(drawStars);
+  }
+  requestAnimationFrame(drawStars);
+
+  if(!reduceMotion){
+    function spawnShootingStar(){
+      var el = document.createElement('div');
+      el.className = 'shooting-star';
+      el.style.left = (Math.random()*40) + 'vw';
+      el.style.top = (Math.random()*30) + 'vh';
+      document.body.appendChild(el);
+      el.addEventListener('animationend', function(){ el.remove(); });
+      setTimeout(spawnShootingStar, 5000 + Math.random()*7000);
+    }
+    setTimeout(spawnShootingStar, 3000);
+  }
+
+  /* ---------- custom cursor ---------- */
+  var canHover = window.matchMedia('(hover: hover) and (pointer: fine)').matches;
+  if(canHover){
+    document.documentElement.classList.add('has-cursor');
+    var dot = document.getElementById('cursorDot');
+    var ring = document.getElementById('cursorRing');
+    var rx=0, ry=0, mx=0, my=0;
+    window.addEventListener('mousemove', function(e){
+      mx = e.clientX; my = e.clientY;
+      dot.style.transform = 'translate('+mx+'px,'+my+'px)';
+    });
+    (function loop(){
+      rx += (mx-rx)*0.18; ry += (my-ry)*0.18;
+      ring.style.transform = 'translate('+rx+'px,'+ry+'px)';
+      requestAnimationFrame(loop);
+    })();
+    document.addEventListener('mouseover', function(e){
+      if(e.target.closest('button, a, input, textarea')){ ring.classList.add('is-hover'); }
+    });
+    document.addEventListener('mouseout', function(e){
+      if(e.target.closest('button, a, input, textarea')){ ring.classList.remove('is-hover'); }
+    });
+  }
+
+  /* ---------- hover card ---------- */
+  var stage = document.querySelector('.stage');
+  var card = document.getElementById('hovercard');
+  var cardTitle = document.getElementById('hovercardTitle');
+  var cardDesc = document.getElementById('hovercardDesc');
+
+  function showCard(el){
+    if(!el.dataset.title) return;
+    var rect = el.getBoundingClientRect();
+    var stageRect = stage.getBoundingClientRect();
+    cardTitle.textContent = el.dataset.title;
+    cardDesc.textContent = el.dataset.desc || '';
+    card.classList.add('is-visible');
+    var gap = 20, cardWidth = 230;
+    var cardHeight = card.offsetHeight || 120;
+    var left = rect.right - stageRect.left + gap;
+    if(rect.right + gap + cardWidth > window.innerWidth){
+      left = rect.left - stageRect.left - gap - cardWidth;
+    }
+    var top = (rect.top + rect.bottom) / 2 - stageRect.top - (cardHeight / 2);
+    top = Math.max(0, Math.min(top, stageRect.height - cardHeight));
+    card.style.left = left + 'px';
+    card.style.top = top + 'px';
+  }
+  function hideCard(){ card.classList.remove('is-visible'); }
+
+  document.querySelectorAll('#home [data-title]').forEach(function(el){
+    el.addEventListener('mouseenter', function(){ showCard(el); });
+    el.addEventListener('mouseleave', hideCard);
+    el.addEventListener('focus', function(){ showCard(el); });
+    el.addEventListener('blur', hideCard);
+  });
+
+  /* ---------- view switching + warp transition ---------- */
+  var warp = document.getElementById('warp');
+  var current = 'home';
+ var colors = { home:'#7b5cff', orbit:'#a48cff', process:'#7b5cff', playground:'#e14dab', about:'#ff8a5c', contact:'#4ea1ff', doggo:'#63c174' };
+
+  function switchView(target, filter){
+    document.querySelectorAll('.view').forEach(function(v){
+      var active = v.dataset.view === target;
+      v.classList.toggle('is-active', active);
+      v.setAttribute('aria-hidden', active ? 'false' : 'true');
+    });
+    document.body.setAttribute('data-view', target);
+    document.querySelectorAll('.side-menu__link').forEach(function(d){
+      d.setAttribute('aria-current', d.dataset.target === target ? 'true' : 'false');
+    });
+    var view = document.querySelector('.view[data-view="'+target+'"]');
+    view.querySelectorAll('.reveal').forEach(function(el, i){
+      el.style.animation = 'none';
+      void el.offsetWidth;
+      el.style.animation = '';
+      el.style.animationDelay = (i*0.04) + 's';
+    });
+    view.scrollTop = 0;
+    current = target;
+    if(target === 'playground' && filter){ applyFilter(filter); }
+    hideCard();
+  }
+
+  function navigate(target, filter){
+    if(target === current){ if(target==='playground' && filter) applyFilter(filter); return; }
+    warp.style.setProperty('--warp-color', colors[target] || colors.home);
+    if(reduceMotion){ switchView(target, filter); return; }
+    warp.classList.add('warp-in');
+    warp.addEventListener('animationend', function onIn(e){
+      if(e.animationName !== 'warpIn') return;
+      warp.removeEventListener('animationend', onIn);
+      switchView(target, filter);
+      warp.classList.remove('warp-in');
+      warp.classList.add('warp-out');
+      warp.addEventListener('animationend', function onOut(e2){
+        if(e2.animationName !== 'warpOut') return;
+        warp.removeEventListener('animationend', onOut);
+        warp.classList.remove('warp-out');
+      });
+    });
+  }
+
+  document.querySelectorAll('[data-target]').forEach(function(el){
+    el.addEventListener('click', function(){
+      navigate(el.dataset.target, el.dataset.filter);
+      if(el.closest('.side-menu')){ closeMenu(); }
+    });
+  });
+
+  document.querySelectorAll('.project-card[data-target]').forEach(function(card){
+    card.addEventListener('click', function(e){
+      e.preventDefault();
+      e.stopPropagation();
+      navigate(card.dataset.target);
+    });
+    card.addEventListener('keydown', function(e){
+      if(e.key === 'Enter' || e.key === ' '){ e.preventDefault(); navigate(card.dataset.target); }
+    });
+  });
+
+  /* ---------- hamburger menu ---------- */
+  var menuToggle = document.getElementById('menuToggle');
+  var sideMenu = document.getElementById('sideMenu');
+  var menuOverlay = document.getElementById('menuOverlay');
+
+  function openMenu(){
+    sideMenu.classList.add('is-open');
+    menuOverlay.classList.add('is-open');
+    menuToggle.setAttribute('aria-expanded', 'true');
+  }
+  function closeMenu(){
+    sideMenu.classList.remove('is-open');
+    menuOverlay.classList.remove('is-open');
+    menuToggle.setAttribute('aria-expanded', 'false');
+  }
+  menuToggle.addEventListener('click', function(){
+    var isOpen = menuToggle.getAttribute('aria-expanded') === 'true';
+    if(isOpen){ closeMenu(); } else { openMenu(); }
+  });
+  menuOverlay.addEventListener('click', closeMenu);
+  document.addEventListener('keydown', function(e){
+    if(e.key === 'Escape'){ closeMenu(); }
+  });
+
+  document.querySelectorAll('.side-menu__link[data-target]').forEach(function(link){
+    var path = document.querySelector('.orbit-lines path[data-path="' + link.dataset.target + '"]');
+    if(!path) return;
+    function light(){ path.classList.add('is-lit'); }
+    function unlight(){ path.classList.remove('is-lit'); }
+    link.addEventListener('mouseenter', light);
+    link.addEventListener('mouseleave', unlight);
+    link.addEventListener('focus', light);
+    link.addEventListener('blur', unlight);
+  });
+
+  /* ---------- playground filters ---------- */
+  function applyFilter(filter){
+    document.querySelectorAll('.filter').forEach(function(f){
+      f.setAttribute('aria-pressed', f.dataset.filter === filter ? 'true' : 'false');
+    });
+    document.querySelectorAll('.project-card').forEach(function(card){
+      var tags = card.dataset.tags.split(' ');
+      var show = filter === 'all' || tags.indexOf(filter) !== -1;
+      card.classList.toggle('is-hidden', !show);
+    });
+  }
+  document.querySelectorAll('.filter').forEach(function(f){
+    f.addEventListener('click', function(){ applyFilter(f.dataset.filter); });
+  });
+
+})();
+</script>
+
+
+<script>
+(() => {
+  const form = document.getElementById('contactForm');
+  if (!form) return;
+
+  const button = form.querySelector('.send-btn');
+  const status = document.getElementById('formStatus');
+
+  form.addEventListener('submit', async (event) => {
+    event.preventDefault();
+    if (!form.reportValidity()) return;
+
+    const originalText = button.textContent;
+    button.disabled = true;
+    button.textContent = 'Sending…';
+    status.textContent = '';
+    status.className = 'form-status';
+
+    try {
+      const response = await fetch(form.action, {
+        method: 'POST',
+        body: new FormData(form),
+        headers: { 'Accept': 'application/json' }
+      });
+
+      if (response.ok) {
+        form.reset();
+        button.textContent = 'Message sent ✓';
+        status.textContent = 'Thank you — your message has been sent.';
+        status.className = 'form-status is-success';
+        setTimeout(() => { button.textContent = originalText; }, 3500);
+      } else {
+        throw new Error('Form submission failed');
+      }
+    } catch (error) {
+      button.textContent = originalText;
+      status.textContent = 'Something went wrong. Please try again.';
+      status.className = 'form-status is-error';
+    } finally {
+      button.disabled = false;
+    }
+  });
+})();
+</script>
+
+</body>
+</html>
+
+<style>
+.cv-satellite,
+.cv-satellite__ring,
+.cv-satellite__body { outline:none !important; }
+.cv-satellite__ring { border:none !important; }
+</style>
